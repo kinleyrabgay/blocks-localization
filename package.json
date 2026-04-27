@@ -1,6 +1,6 @@
 {
   "name": "@selisedev/blocks-localization",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Angular translation SDK powered by SELISE UILM API with signal-based reactivity, two-tier caching (in-memory + IndexedDB), per-module lazy loading, and route-level scoping.",
   "license": "MIT",
   "scripts": {
@@ -49,6 +49,14 @@
   },
   "dependencies": {
     "tslib": "^2.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kinleyrabgay/blocks-localization.git"
+  },
+  "homepage": "https://github.com/kinleyrabgay/blocks-localization#readme",
+  "bugs": {
+    "url": "https://github.com/kinleyrabgay/blocks-localization/issues"
   },
   "sideEffects": false,
   "overrides": {
