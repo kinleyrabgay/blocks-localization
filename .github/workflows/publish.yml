@@ -1,0 +1,182 @@
+# ============================================================================
+# @selisedev/blocks-localization — Test, Build & Publish Pipeline
+# ============================================================================
+#
+# Triggers:
+#   - Push to main that changes src/**
+#   - Manual dispatch with version bump selection
+#
+# Pipeline:
+#   1. Lint   — ESLint checks
+#   2. Test   — Vitest (69 tests, 8 spec files)
+#   3. Build  — ng-packagr production build
+#   4. Publish — npm publish (only on main, with version bump)
+#
+# Required secrets:
+#   - NPM_TOKEN: npm access token with publish permissions for @selisedev scope
+# ============================================================================
+
+name: "Publish @selisedev/blocks-localization"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "package.json"
+      - ".github/workflows/publish.yml"
+
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: "Dry run (skip actual publish)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Lint + Test (parallel)
+  # --------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci --prefer-offline
+      - run: npm run lint
+      - run: npm run format:check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci --prefer-offline
+      - run: npm test
+
+  # --------------------------------------------------------------------------
+  # Build
+  # --------------------------------------------------------------------------
+  build:
+    name: Build
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci --prefer-offline
+      - run: npm run build:prod
+
+      - name: Verify dist output
+        run: |
+          test -f "dist/package.json" || { echo "ERROR: package.json missing in dist"; exit 1; }
+          test -d "dist/esm2022" || { echo "ERROR: esm2022 missing in dist"; exit 1; }
+          echo "--- dist contents ---"
+          ls -la dist/
+          echo "--- package.json ---"
+          cat dist/package.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  # --------------------------------------------------------------------------
+  # Publish
+  # --------------------------------------------------------------------------
+  publish:
+    name: Publish to npm
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: version
+        run: |
+          BUMP="${{ github.event.inputs.version_bump || 'patch' }}"
+          NEW_VERSION=$(npm version "$BUMP" --no-git-tag-version)
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bumped to $NEW_VERSION"
+          cd dist
+          npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Publish
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd dist
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry run publish
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          cd dist
+          npm publish --access public --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit version bump & tag
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git add package.json
+          git commit -m "chore: release ${{ steps.version.outputs.version }}"
+          git tag "${{ steps.version.outputs.version }}"
+          git push origin HEAD --tags
