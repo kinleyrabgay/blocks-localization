@@ -1,4 +1,4 @@
-# @blocks/localization
+# @selisedev/blocks-localization
 
 Standalone Angular SDK for SELISE UILM (Unified Internationalization & Localization Management).
 
@@ -23,7 +23,7 @@ The SDK supports two strategies for loading translations:
 
 ```typescript
 // app.config.ts
-import { provideBlocksLocalization } from '@blocks/localization';
+import { provideBlocksLocalization } from '@selisedev/blocks-localization';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -49,7 +49,7 @@ Then use `provideUilmScope()` on each route to load module-specific translations
 
 ```typescript
 // app.config.ts
-import { provideBlocksLocalization } from '@blocks/localization';
+import { provideBlocksLocalization } from '@selisedev/blocks-localization';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -87,7 +87,7 @@ Use `provideUilmScope` to declare which UILM modules a route needs:
 
 ```typescript
 // dashboard.route.ts
-import { provideUilmScope } from '@blocks/localization';
+import { provideUilmScope } from '@selisedev/blocks-localization';
 
 export const DASHBOARD_ROUTE: Route[] = [{
   path: 'dashboard',
@@ -111,7 +111,7 @@ export const DASHBOARD_ROUTE: Route[] = [{
 When using `'eager'` strategy, you can show a loading screen while translations are being fetched. The SDK provides a ready-made component:
 
 ```typescript
-import { UilmLoadingScreenComponent, UilmStore } from '@blocks/localization';
+import { UilmLoadingScreenComponent, UilmStore } from '@selisedev/blocks-localization';
 
 @Component({
   imports: [UilmLoadingScreenComponent, RouterOutlet],
@@ -159,7 +159,7 @@ With scope (auto-prefixes keys):
 
 **Component setup:**
 ```typescript
-import { UilmTranslateDirective } from '@blocks/localization';
+import { UilmTranslateDirective } from '@selisedev/blocks-localization';
 
 @Component({
   imports: [UilmTranslateDirective],
@@ -178,7 +178,7 @@ Inline pipe for simple translations:
 
 **Component setup:**
 ```typescript
-import { UilmTranslatePipe } from '@blocks/localization';
+import { UilmTranslatePipe } from '@selisedev/blocks-localization';
 
 @Component({
   imports: [UilmTranslatePipe],
@@ -200,7 +200,7 @@ Resolves a multilingual object to the value matching the active language. Falls 
 
 **Component setup:**
 ```typescript
-import { MultiLangPipe } from '@blocks/localization';
+import { MultiLangPipe } from '@selisedev/blocks-localization';
 
 @Component({
   imports: [MultiLangPipe],
@@ -213,7 +213,7 @@ import { MultiLangPipe } from '@blocks/localization';
 Signal-based service for component classes:
 
 ```typescript
-import { UilmTranslateService } from '@blocks/localization';
+import { UilmTranslateService } from '@selisedev/blocks-localization';
 
 @Component({ ... })
 export class MyComponent {
@@ -240,7 +240,7 @@ export class MyComponent {
 ## Language Switching
 
 ```typescript
-import { BlocksLangSwitcher } from '@blocks/localization';
+import { BlocksLangSwitcher } from '@selisedev/blocks-localization';
 
 @Component({ ... })
 export class LangSwitcher {
@@ -479,7 +479,7 @@ provideUilmScope({ modules })          Route-level: lazy load + merge into store
 The SDK provides `provideBlocksLocalizationTesting` for unit tests - no HTTP calls, no UILM API. Translations are loaded directly into the store.
 
 ```typescript
-import { provideBlocksLocalizationTesting } from '@blocks/localization';
+import { provideBlocksLocalizationTesting } from '@selisedev/blocks-localization';
 
 TestBed.configureTestingModule({
   providers: [
@@ -504,7 +504,7 @@ provideBlocksLocalizationTesting(
 
 ```typescript
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideBlocksLocalizationTesting, UilmTranslateDirective } from '@blocks/localization';
+import { provideBlocksLocalizationTesting, UilmTranslateDirective } from '@selisedev/blocks-localization';
 
 import { MyComponent } from './my.component';
 
@@ -536,7 +536,7 @@ describe('MyComponent', () => {
 ### Testing language switching
 
 ```typescript
-import { UilmStore } from '@blocks/localization';
+import { UilmStore } from '@selisedev/blocks-localization';
 
 it('should update when language changes', () => {
   const store = TestBed.inject(UilmStore);
@@ -555,7 +555,7 @@ it('should update when language changes', () => {
 ```typescript
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { BLOCKS_LOCALIZATION_CONFIG, UilmIndexedDbCache, UilmLoader } from '@blocks/localization';
+import { BLOCKS_LOCALIZATION_CONFIG, UilmIndexedDbCache, UilmLoader } from '@selisedev/blocks-localization';
 
 // Mock IndexedDB cache for tests (jsdom has no IndexedDB)
 class FakeIndexedDbCache {
