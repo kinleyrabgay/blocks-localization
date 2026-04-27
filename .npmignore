@@ -16,3 +16,7 @@ project.json
 CONTRIBUTING.md
 DEPLOYMENT.md
 CHANGELOG.md
+.claude/
+.github/
+CLAUDE.md
+ng-package.json
