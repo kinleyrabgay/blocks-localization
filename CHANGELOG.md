@@ -12,6 +12,21 @@ _Add entries here as you work. Move them to a versioned section on release._
 
 ---
 
+## [0.2.3] - 2026-04-28
+
+### Fixed
+
+- **Cache hydration race condition** — when `revalidateInBackground` is enabled, IndexedDB cache hydration now checks `store.ready()` before writing. Prevents stale cached data from overwriting fresher API data that arrived first.
+- **Subscription leak in background revalidation** — `revalidateFromApi()` now uses `takeUntilDestroyed()` to auto-clean subscriptions when the loader is destroyed.
+- **Malformed API response crash** — HTTP responses are now validated before use. `null`, arrays, and non-object responses are sanitized to empty `{}` instead of crashing downstream code.
+- **`flattenJson` circular reference crash** — recursive flattening now tracks visited objects and skips circular references instead of stack overflowing.
+- **Expensive `JSON.stringify` equality check** — background revalidation now uses a shallow key-by-key comparison for `TranslationMap` equality, which is faster and order-independent.
+- **Event listener leak in `UilmStore`** — the `window.postMessage` listener for key mode toggle is now removed via `DestroyRef.onDestroy()` when the store is destroyed.
+- **Unsafe interpolation with array intermediates** — dotted path interpolation (e.g. `{{ user.name }}`) now correctly skips array intermediates instead of treating them as objects.
+- **Non-null assertion patterns** — replaced `memCache.get(key)!.data` with safe access patterns throughout the loader.
+
+---
+
 ## [0.2.2] - 2026-04-28
 
 ### Added

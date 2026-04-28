@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 
 import { BLOCKS_LOCALIZATION_CONFIG } from './tokens';
 import { BlocksLocalizationConfig } from './types';
@@ -18,6 +18,7 @@ export type TranslationMap = Record<string, string>;
 @Injectable({ providedIn: 'root' })
 export class UilmStore {
   private readonly config = inject<BlocksLocalizationConfig>(BLOCKS_LOCALIZATION_CONFIG);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly storageKey = this.config.langStorageKey ?? 'uilmLang';
 
   /** Internal translation maps: `lang → flat key-value pairs` */
@@ -70,7 +71,9 @@ export class UilmStore {
     if (params) {
       value = value.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, paramKey: string) => {
         const val = paramKey.split('.').reduce<unknown>((obj, k) => {
-          if (obj != null && typeof obj === 'object') return (obj as Record<string, unknown>)[k];
+          if (obj != null && typeof obj === 'object' && !Array.isArray(obj)) {
+            return (obj as Record<string, unknown>)[k];
+          }
           return undefined;
         }, params);
         return val != null ? String(val) : match;
@@ -167,7 +170,7 @@ export class UilmStore {
   private listenForKeyModeToggle(): void {
     if (typeof window === 'undefined') return;
 
-    window.addEventListener('message', (event: MessageEvent) => {
+    const handler = (event: MessageEvent): void => {
       if (event.source !== window) return;
       if (event.origin !== window.location.origin) return;
 
@@ -184,6 +187,9 @@ export class UilmStore {
           this._version.set(this.versionCounter);
         }
       }
-    });
+    };
+
+    window.addEventListener('message', handler);
+    this.destroyRef.onDestroy(() => window.removeEventListener('message', handler));
   }
 }

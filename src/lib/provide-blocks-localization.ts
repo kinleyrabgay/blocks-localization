@@ -26,6 +26,18 @@ function buildRequests(loader: UilmLoader, modules: UilmModuleEntry[], lang: str
 }
 
 /**
+ * Build an array of cache-only read observables from module entries.
+ * @internal
+ */
+function buildCacheRequests(loader: UilmLoader, modules: UilmModuleEntry[], lang: string) {
+  return modules.map((m) =>
+    typeof m === 'string'
+      ? loader.loadFromCacheOnly(lang, m)
+      : loader.loadFromCacheOnly(lang, m.module, m.alias),
+  );
+}
+
+/**
  * Provides all UILM translation infrastructure for an Angular application.
  *
  * ## Strategies
@@ -94,7 +106,26 @@ export function provideBlocksLocalization(config: BlocksLocalizationConfig) {
               .pipe(takeUntilDestroyed(destroyRef))
               .subscribe(({ lang, data }) => store.setTranslation(data, lang));
 
-            // Load for current language immediately
+            // Hydrate from IndexedDB cache immediately (no metadata needed),
+            // then let the normal metadata + API flow handle revalidation.
+            if (config.revalidateInBackground && config.cacheStorage === 'indexeddb') {
+              const lang = store.activeLang();
+              forkJoin(buildCacheRequests(loader, modules, lang))
+                .pipe(takeUntilDestroyed(destroyRef))
+                .subscribe((results) => {
+                  // Only hydrate if the store hasn't been populated yet
+                  // (avoids overwriting fresher API data that arrived first)
+                  if (store.ready()) return;
+                  const cached = results.filter(
+                    (r): r is NonNullable<typeof r> => r != null,
+                  );
+                  if (cached.length > 0) {
+                    store.setTranslation(Object.assign({}, ...cached), lang);
+                  }
+                });
+            }
+
+            // Load for current language (metadata + API)
             loader
               .ensureMetadataLoaded()
               .pipe(takeUntilDestroyed(destroyRef))

@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { from, Observable, of, shareReplay, Subject } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
@@ -40,6 +41,7 @@ export class UilmLoader {
   private readonly http = inject(HttpClient);
   private readonly config = inject<BlocksLocalizationConfig>(BLOCKS_LOCALIZATION_CONFIG);
   private readonly idbCache = inject(UilmIndexedDbCache);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** L1 in-memory cache. */
   private readonly memCache = new Map<string, CacheEntry>();
@@ -112,8 +114,9 @@ export class UilmLoader {
     const cacheKey = this.buildCacheKey(prefix, lang);
 
     // 1. L1 hit
-    if (this.isL1Valid(cacheKey)) {
-      return of(this.memCache.get(cacheKey)!.data);
+    const l1Entry = this.memCache.get(cacheKey);
+    if (l1Entry && this.isL1Valid(cacheKey)) {
+      return of(l1Entry.data);
     }
 
     // 2. In-flight dedup
@@ -127,6 +130,38 @@ export class UilmLoader {
 
     this.inflight.set(cacheKey, request$);
     return request$;
+  }
+
+  /**
+   * Attempt to load translations from IndexedDB cache only (no API, no metadata).
+   * Returns `null` if IndexedDB is disabled or the entry is missing.
+   * Used for instant store hydration before metadata is available.
+   */
+  loadFromCacheOnly(
+    lang: string,
+    moduleName: string,
+    alias?: string,
+  ): Observable<TranslationMap | null> {
+    if (!this.useIndexedDb) return of(null);
+
+    const prefix = alias ?? moduleName;
+    const cacheKey = this.buildCacheKey(prefix, lang);
+
+    // L1 hit
+    const l1Entry = this.memCache.get(cacheKey);
+    if (l1Entry && this.isL1Valid(cacheKey)) {
+      return of(l1Entry.data);
+    }
+
+    return from(this.idbCache.get(cacheKey, this.cacheTimeout)).pipe(
+      map((data) => {
+        if (data) {
+          this.memCache.set(cacheKey, { data, timestamp: Date.now() });
+        }
+        return data;
+      }),
+      catchError(() => of(null)),
+    );
   }
 
   /** Ensure modules and languages metadata are loaded (fetches once, then no-ops). */
@@ -290,6 +325,7 @@ export class UilmLoader {
       `&Language=${encodeURIComponent(fullLangCode)}`;
 
     return this.http.get<TranslationMap>(url, { headers: this.buildHeaders() }).pipe(
+      map((data) => this.sanitizeApiResponse(data)),
       map((data) => (this.shouldPrefixKeys ? this.prefixKeys(data, prefix) : data)),
       tap((data) => {
         this.populateCache(cacheKey, data);
@@ -401,10 +437,14 @@ export class UilmLoader {
 
     this.http
       .get<TranslationMap>(url, { headers: this.buildHeaders() })
-      .pipe(map((data) => (this.shouldPrefixKeys ? this.prefixKeys(data, prefix) : data)))
+      .pipe(
+        map((data) => this.sanitizeApiResponse(data)),
+        map((data) => (this.shouldPrefixKeys ? this.prefixKeys(data, prefix) : data)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (freshData) => {
-          if (JSON.stringify(freshData) !== JSON.stringify(cachedData)) {
+          if (!this.shallowEqual(freshData, cachedData)) {
             this.populateCache(cacheKey, freshData);
             this.revalidated$.next({ lang, data: freshData });
           }
@@ -429,6 +469,22 @@ export class UilmLoader {
       headers['Authorization'] = `Bearer ${this.config.accessToken}`;
     }
     return new HttpHeaders(headers);
+  }
+
+  /** Ensure API response is a valid flat object. Returns empty map for malformed responses. */
+  private sanitizeApiResponse(data: unknown): TranslationMap {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return {};
+    }
+    return data as TranslationMap;
+  }
+
+  /** Shallow key-by-key equality check for flat TranslationMaps. */
+  private shallowEqual(a: TranslationMap, b: TranslationMap): boolean {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) return false;
+    return aKeys.every((key) => a[key] === b[key]);
   }
 
   private prefixKeys(data: TranslationMap, prefix: string): TranslationMap {

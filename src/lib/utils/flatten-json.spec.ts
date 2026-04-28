@@ -56,4 +56,19 @@ describe('flattenJson', () => {
     } as Record<string, unknown>);
     expect(result).toEqual({ 'ITEMS.0.NAME': 'first', 'ITEMS.1.NAME': 'second' });
   });
+
+  it('should handle circular references without crashing', () => {
+    const obj: Record<string, unknown> = { A: 'hello' };
+    obj['SELF'] = obj; // circular ref
+    const result = flattenJson(obj);
+    expect(result).toEqual({ A: 'hello' });
+  });
+
+  it('should handle circular references in nested objects', () => {
+    const child: Record<string, unknown> = { B: 'world' };
+    const obj: Record<string, unknown> = { A: 'hello', CHILD: child };
+    child['PARENT'] = obj; // circular ref back to parent
+    const result = flattenJson(obj);
+    expect(result).toEqual({ A: 'hello', 'CHILD.B': 'world' });
+  });
 });

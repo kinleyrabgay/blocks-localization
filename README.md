@@ -645,12 +645,12 @@ npx nx test blocks-localization
 
 | Spec file | Tests | What it covers |
 |---|---|---|
-| `flatten-json.spec.ts` | 9 | Nesting depth, custom separators, null/array edge cases, parent key prefix |
+| `flatten-json.spec.ts` | 13 | Nesting depth, custom separators, null/array edge cases, parent key prefix, circular reference protection |
 | `lang-codes.spec.ts` | 8 | Short-to-full mapping, full-to-short extraction, reverse mapping |
 | `i18n-record.spec.ts` | 2 | Empty record creation from language array |
-| `uilm-store.spec.ts` | 29 | Translation lookup, `{{ param }}` interpolation, merge (not overwrite), `has()`, `ready()` signal, version bumping, localStorage persistence + restore, invalid lang fallback, storage error fallback, key mode toggle via postMessage |
+| `uilm-store.spec.ts` | 30 | Translation lookup, `{{ param }}` interpolation (including array intermediates), merge (not overwrite), `has()`, `ready()` signal, version bumping, localStorage persistence + restore, invalid lang fallback, storage error fallback, key mode toggle via postMessage |
 | `uilm-indexeddb-cache.spec.ts` | 21 | Graceful degradation when IndexedDB unavailable (no throws), TTL expiry logic unit tests |
-| `uilm-loader.spec.ts` | 33 | L1 cache hit, L2 (IndexedDB) hit/miss/stale, in-flight dedup, key prefixing (module/alias/empty), full locale in URL, metadata fetch + no-op, clearCache L1+L2, fallbackToLocal disabled, Authorization header, local JSON fallback + flatten, stale-while-revalidate (background refresh, same-data no-op, API error silence) |
+| `uilm-loader.spec.ts` | 36 | L1 cache hit, L2 (IndexedDB) hit/miss/stale, in-flight dedup, key prefixing (module/alias/empty), full locale in URL, metadata fetch + no-op, clearCache L1+L2, fallbackToLocal disabled, Authorization header, local JSON fallback + flatten, stale-while-revalidate (background refresh, shallow equality, API error silence), API response validation (null/array sanitization) |
 | `uilm-translate.service.spec.ts` | 8 | `t()` signal, `translate()` sync, `tMany()` / `translateMany()` batch, interpolation, `activeLang`, `setActiveLang()` |
 | `provide-blocks-localization-testing.spec.ts` | 4 | Translation injection, default lang, config overrides, empty translations |
 

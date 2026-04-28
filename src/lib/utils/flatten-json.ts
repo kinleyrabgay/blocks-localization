@@ -11,20 +11,33 @@ export function flattenJson(
   obj: Record<string, unknown>,
   parentKey = '',
   separator = '.',
+  _visited = new Set<object>(),
 ): Record<string, string> {
+  _visited.add(obj);
   const result: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     const newKey = parentKey ? `${parentKey}${separator}${key}` : key;
 
     if (value != null && typeof value === 'object' && !Array.isArray(value)) {
-      Object.assign(result, flattenJson(value as Record<string, unknown>, newKey, separator));
+      if (_visited.has(value as object)) continue; // skip circular refs
+      _visited.add(value as object);
+      Object.assign(
+        result,
+        flattenJson(value as Record<string, unknown>, newKey, separator, _visited),
+      );
     } else if (Array.isArray(value)) {
-      // Recurse into array items with numeric indices
+      if (_visited.has(value)) continue; // skip circular refs
+      _visited.add(value);
       value.forEach((item, i) => {
         const arrKey = `${newKey}${separator}${i}`;
         if (item != null && typeof item === 'object' && !Array.isArray(item)) {
-          Object.assign(result, flattenJson(item as Record<string, unknown>, arrKey, separator));
+          if (_visited.has(item as object)) return;
+          _visited.add(item as object);
+          Object.assign(
+            result,
+            flattenJson(item as Record<string, unknown>, arrKey, separator, _visited),
+          );
         } else {
           result[arrKey] = String(item ?? '');
         }

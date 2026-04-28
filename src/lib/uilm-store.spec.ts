@@ -68,6 +68,11 @@ describe('UilmStore', () => {
     expect(store.translate('GREET', { user: {} })).toBe('Hello {{ user.name }}!');
   });
 
+  it('should keep placeholder when intermediate in dotted path is an array', () => {
+    store.setTranslation({ GREET: 'Hello {{ user.name }}!' }, 'en');
+    expect(store.translate('GREET', { user: ['a', 'b'] })).toBe('Hello {{ user.name }}!');
+  });
+
   it('should keep placeholder when intermediate in dotted path is not an object', () => {
     store.setTranslation({ GREET: 'Hello {{ user.name }}!' }, 'en');
     expect(store.translate('GREET', { user: 'string' })).toBe('Hello {{ user.name }}!');

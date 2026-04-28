@@ -81,6 +81,31 @@ export function provideUilmScope(config: UilmScopeConfig) {
         .pipe(takeUntilDestroyed(destroyRef))
         .subscribe(({ lang, data }) => store.setTranslation(data, lang));
 
+      // Hydrate from IndexedDB cache immediately for instant rendering
+      if (
+        globalConfig.revalidateInBackground &&
+        globalConfig.cacheStorage === 'indexeddb' &&
+        entries.length > 0
+      ) {
+        const lang = store.activeLang();
+        const cacheRequests = entries.map((e) =>
+          loader.loadFromCacheOnly(lang, e.module, e.alias),
+        );
+        forkJoin(cacheRequests)
+          .pipe(takeUntilDestroyed(destroyRef))
+          .subscribe((results) => {
+            // Only hydrate if the store hasn't been populated yet
+            // (avoids overwriting fresher API data that arrived first)
+            if (store.ready()) return;
+            const cached = results.filter(
+              (r): r is NonNullable<typeof r> => r != null,
+            );
+            if (cached.length > 0) {
+              store.setTranslation(Object.assign({}, ...cached), lang);
+            }
+          });
+      }
+
       // In eager mode, skip the initial fetch — APP_INITIALIZER already loaded everything.
       // The loader cache will short-circuit anyway, but this avoids unnecessary forkJoin overhead.
       if (globalConfig.strategy !== 'eager') {

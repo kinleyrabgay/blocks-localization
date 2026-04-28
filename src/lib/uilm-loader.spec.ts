@@ -678,6 +678,49 @@ describe('UilmLoader', () => {
     });
   });
 
+  describe('revalidateInBackground — shallow equality', () => {
+    beforeEach(() =>
+      setup({ cacheStorage: 'indexeddb', revalidateInBackground: true, cacheTimeout: 0 }),
+    );
+
+    it('should detect changes even when key order differs', async () => {
+      const cached = { A: '1', B: '2' };
+      const fresh = { B: '2', A: '1', C: '3' }; // extra key
+      await fakeIdb.set('mod::en', cached);
+
+      const revalidations: Array<{ lang: string; data: TranslationMap }> = [];
+      loader.revalidated$.subscribe((r) => revalidations.push(r));
+
+      loader.fetchModuleTranslations('en', 'mod').subscribe();
+      await flushMicrotasks();
+
+      const req = httpMock.expectOne((r) => r.url.includes('ModuleName=mod'));
+      req.flush(fresh);
+
+      expect(revalidations.length).toBe(1);
+    });
+  });
+
+  describe('API response validation', () => {
+    beforeEach(() => setup());
+
+    it('should handle null API response without crashing', () => {
+      loader.fetchModuleTranslations('en', 'mod').subscribe();
+
+      const req = httpMock.expectOne((r) => r.url.includes('ModuleName=mod'));
+      req.flush(null);
+      // Should not throw — sanitized to {}
+    });
+
+    it('should handle array API response without crashing', () => {
+      loader.fetchModuleTranslations('en', 'mod').subscribe();
+
+      const req = httpMock.expectOne((r) => r.url.includes('ModuleName=mod'));
+      req.flush(['not', 'a', 'map']);
+      // Should not throw — sanitized to {}
+    });
+  });
+
   describe('revalidateInBackground disabled', () => {
     beforeEach(() =>
       setup({ cacheStorage: 'indexeddb', revalidateInBackground: false, cacheTimeout: 0 }),
