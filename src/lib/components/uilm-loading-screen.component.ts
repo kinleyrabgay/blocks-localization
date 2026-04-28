@@ -1,45 +1,51 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, input, TemplateRef } from '@angular/core';
 
 @Component({
   selector: 'uilm-loading-screen',
   standalone: true,
+  imports: [NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="uilm-loading-screen">
-      <div class="uilm-loading-content">
-        <div class="uilm-loading-logo">
-          <svg
-            width="44"
-            height="44"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#6366f1" />
-            <path
-              d="M2 17l10 5 10-5"
-              stroke="#6366f1"
-              stroke-opacity="0.35"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <path
-              d="M2 12l10 5 10-5"
-              stroke="#6366f1"
-              stroke-opacity="0.6"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+      @if (customTemplate()) {
+        <ng-container *ngTemplateOutlet="customTemplate()!" />
+      } @else {
+        <div class="uilm-loading-content">
+          <div class="uilm-loading-logo">
+            <svg
+              width="44"
+              height="44"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#6366f1" />
+              <path
+                d="M2 17l10 5 10-5"
+                stroke="#6366f1"
+                stroke-opacity="0.35"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M2 12l10 5 10-5"
+                stroke="#6366f1"
+                stroke-opacity="0.6"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <h2 class="uilm-loading-title">{{ title() }}</h2>
+          <p class="uilm-loading-description">{{ description() }}</p>
+          <div class="uilm-loading-bar">
+            <div class="uilm-loading-bar-fill"></div>
+          </div>
         </div>
-        <h2 class="uilm-loading-title">{{ title() }}</h2>
-        <p class="uilm-loading-description">{{ description() }}</p>
-        <div class="uilm-loading-bar">
-          <div class="uilm-loading-bar-fill"></div>
-        </div>
-      </div>
+      }
     </div>
   `,
   styles: [
@@ -148,4 +154,21 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 export class UilmLoadingScreenComponent {
   readonly title = input('Loading');
   readonly description = input('Loading translations...');
+
+  /**
+   * Optional custom template to replace the entire default loading UI.
+   *
+   * @example
+   * ```html
+   * <ng-template #customLoading>
+   *   <div class="my-loading">
+   *     <img src="assets/logo.svg" />
+   *     <p>Please wait...</p>
+   *   </div>
+   * </ng-template>
+   *
+   * <uilm-loading-screen [customTemplate]="customLoading" />
+   * ```
+   */
+  readonly customTemplate = input<TemplateRef<unknown>>();
 }

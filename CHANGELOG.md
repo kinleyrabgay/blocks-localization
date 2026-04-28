@@ -12,6 +12,14 @@ _Add entries here as you work. Move them to a versioned section on release._
 
 ---
 
+## [0.2.1] - 2026-04-28
+
+### Added
+
+- **Custom loading screen template** — `UilmLoadingScreenComponent` now accepts an optional `customTemplate` input (`TemplateRef`). When provided, the entire default loading UI (logo, title, description, progress bar) is replaced by your custom template, giving full control over the loading screen's appearance.
+
+---
+
 ## [0.2.0] - 2026-04-27
 
 ### Added

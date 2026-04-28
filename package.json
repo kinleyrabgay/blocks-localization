@@ -1,6 +1,6 @@
 {
   "name": "@selisedev/blocks-localization",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Angular translation SDK powered by SELISE UILM API with signal-based reactivity, two-tier caching (in-memory + IndexedDB), per-module lazy loading, and route-level scoping.",
   "license": "MIT",
   "scripts": {

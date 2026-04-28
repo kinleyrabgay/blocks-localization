@@ -108,7 +108,7 @@ export const DASHBOARD_ROUTE: Route[] = [{
 
 ### 4. Loading screen (eager mode)
 
-When using `'eager'` strategy, you can show a loading screen while translations are being fetched. The SDK provides a ready-made component:
+When using `'eager'` strategy, you can show a loading screen while translations are being fetched. The SDK provides a ready-made component with a default UI:
 
 ```typescript
 import { UilmLoadingScreenComponent, UilmStore } from '@selisedev/blocks-localization';
@@ -130,7 +130,35 @@ export class AppComponent {
 }
 ```
 
-The component renders a centered full-screen overlay with a spinner. Both `title` and `description` are configurable via inputs.
+#### Custom loading UI
+
+Pass a `customTemplate` to fully replace the default loading screen with your own design:
+
+```typescript
+@Component({
+  imports: [UilmLoadingScreenComponent, RouterOutlet],
+  template: `
+    <ng-template #brandLoader>
+      <div class="my-loader">
+        <img src="assets/logo.svg" alt="Loading" />
+        <h1>Please wait...</h1>
+        <my-spinner />
+      </div>
+    </ng-template>
+
+    @if (!store.ready()) {
+      <uilm-loading-screen [customTemplate]="brandLoader" />
+    } @else {
+      <router-outlet />
+    }
+  `,
+})
+export class AppComponent {
+  protected readonly store = inject(UilmStore);
+}
+```
+
+When `customTemplate` is provided, the default logo, title, description, and progress bar are completely replaced by your template content. The outer `.uilm-loading-screen` wrapper (fixed, centered, full-screen) is preserved.
 
 > **Note:** In eager mode the `APP_INITIALIZER` blocks Angular bootstrap, so `store.ready()` is `true` by the time the app renders. The loading screen is most useful if you combine eager preloading of some modules with lazy loading of others.
 
