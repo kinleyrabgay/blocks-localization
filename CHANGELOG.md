@@ -12,6 +12,14 @@ _Add entries here as you work. Move them to a versioned section on release._
 
 ---
 
+## [0.2.2] - 2026-04-28
+
+### Added
+
+- **Stale-while-revalidate for IndexedDB cache** — new `revalidateInBackground` config option. When `cacheStorage: 'indexeddb'` and cached translations exist, the UI renders immediately from cache while the SDK fetches fresh translations from the API in the background. If the API returns updated data, caches and the store are silently updated without blocking the UI. Only blocks when there is no cached data at all.
+
+---
+
 ## [0.2.1] - 2026-04-28
 
 ### Added

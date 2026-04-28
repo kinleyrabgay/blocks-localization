@@ -2,7 +2,7 @@
 
 Standalone Angular SDK for SELISE UILM (Unified Internationalization & Localization Management).
 
-**Zero external translation dependencies** — no Transloco, ngx-translate, or similar. Built entirely on Angular signals with two loading strategies, two-tier caching (in-memory + IndexedDB), local JSON fallback, module aliasing, and route-level scoping.
+**Zero external translation dependencies** - no Transloco, ngx-translate, or similar. Built entirely on Angular signals with two loading strategies, two-tier caching (in-memory + IndexedDB), local JSON fallback, module aliasing, and route-level scoping.
 
 ---
 
@@ -37,6 +37,7 @@ export const appConfig: ApplicationConfig = {
       prefixKeysWithModule: true,
       cacheTimeout: 300_000,        // 5 min TTL (0 = no cache)
       cacheStorage: 'indexeddb',    // persist across sessions (default: 'memory')
+      revalidateInBackground: true, // serve from cache, refresh from API silently
       preloadModules: ['common'],   // only shared module preloaded
     }),
   ],
@@ -63,6 +64,7 @@ export const appConfig: ApplicationConfig = {
       prefixKeysWithModule: true,
       strategy: 'eager',
       cacheStorage: 'indexeddb',
+      revalidateInBackground: true,
       cacheTimeout: 300_000,
       preloadModules: [
         { module: 'common', alias: '' },
@@ -342,11 +344,29 @@ provideBlocksLocalization({
 |---|---|---|---|
 | `cacheTimeout` | `number` | `0` | Cache TTL in milliseconds. `0` means no expiry (cached until cleared). |
 | `cacheStorage` | `'memory' \| 'indexeddb'` | `'memory'` | Where to persist cached translations. `'indexeddb'` enables cross-session persistence. |
+| `revalidateInBackground` | `boolean` | `false` | When `true` and `cacheStorage` is `'indexeddb'`, serves cached translations immediately and refreshes from API in the background. No effect with `'memory'` storage. |
 
 ### How it works
 
 - **`'memory'` (default):** L1-only. Translations are cached in a JS `Map` for the duration of the session. Page reload fetches everything fresh.
 - **`'indexeddb'`:** L1 + L2. On first load, translations are fetched from the API and stored in both memory and IndexedDB. On subsequent page loads, translations are served instantly from IndexedDB (L2) while in-memory cache (L1) provides zero-latency lookups within the session.
+
+### Stale-while-revalidate
+
+When `revalidateInBackground: true` is set with `cacheStorage: 'indexeddb'`, the SDK uses a stale-while-revalidate strategy:
+
+1. **IndexedDB has cached translations** — serve them immediately (no UI blocking), then fetch from the API in the background. If the API returns updated data, both caches and the translation store are silently updated.
+2. **IndexedDB is empty** — fetch from the API as usual (blocks until data arrives).
+
+This gives you instant page loads from cache while keeping translations fresh. The UI never blocks on repeat visits, and updates appear seamlessly when the API responds with new data.
+
+```typescript
+provideBlocksLocalization({
+  // ...
+  cacheStorage: 'indexeddb',
+  revalidateInBackground: true,
+})
+```
 
 ### Fault tolerance
 
@@ -417,6 +437,7 @@ provideBlocksLocalization({
 | `preloadModules` | `UilmModuleEntry[]` | — | Modules to preload at startup. In eager mode, list **all** modules here. |
 | `cacheTimeout` | `number` | `0` | Cache TTL in ms (`0` = no expiry) |
 | `cacheStorage` | `'memory' \| 'indexeddb'` | `'memory'` | Cache persistence layer (see [Caching](#caching)) |
+| `revalidateInBackground` | `boolean` | `false` | Serve cached IndexedDB translations immediately, refresh from API silently (see [Stale-while-revalidate](#stale-while-revalidate)) |
 | `prefixKeysWithModule` | `boolean` | `false` | Namespace keys with module/alias |
 | `fallbackToLocal` | `boolean` | `true` | Fall back to local JSON files on API failure |
 | `localAssetsPath` | `string` | `'assets/i18n'` | Base path for local fallback JSON files |
@@ -627,9 +648,9 @@ npx nx test blocks-localization
 | `flatten-json.spec.ts` | 9 | Nesting depth, custom separators, null/array edge cases, parent key prefix |
 | `lang-codes.spec.ts` | 8 | Short-to-full mapping, full-to-short extraction, reverse mapping |
 | `i18n-record.spec.ts` | 2 | Empty record creation from language array |
-| `uilm-store.spec.ts` | 14 | Translation lookup, `{{ param }}` interpolation, merge (not overwrite), `has()`, `ready()` signal, version bumping, localStorage persistence + restore, invalid lang fallback |
-| `uilm-indexeddb-cache.spec.ts` | 7 | Graceful degradation when IndexedDB unavailable (no throws), TTL expiry logic unit tests |
-| `uilm-loader.spec.ts` | 17 | L1 cache hit, L2 (IndexedDB) hit/miss/stale, in-flight dedup, key prefixing (module/alias/empty), full locale in URL, metadata fetch + no-op, clearCache L1+L2, fallbackToLocal disabled, Authorization header, local JSON fallback + flatten |
+| `uilm-store.spec.ts` | 29 | Translation lookup, `{{ param }}` interpolation, merge (not overwrite), `has()`, `ready()` signal, version bumping, localStorage persistence + restore, invalid lang fallback, storage error fallback, key mode toggle via postMessage |
+| `uilm-indexeddb-cache.spec.ts` | 21 | Graceful degradation when IndexedDB unavailable (no throws), TTL expiry logic unit tests |
+| `uilm-loader.spec.ts` | 33 | L1 cache hit, L2 (IndexedDB) hit/miss/stale, in-flight dedup, key prefixing (module/alias/empty), full locale in URL, metadata fetch + no-op, clearCache L1+L2, fallbackToLocal disabled, Authorization header, local JSON fallback + flatten, stale-while-revalidate (background refresh, same-data no-op, API error silence) |
 | `uilm-translate.service.spec.ts` | 8 | `t()` signal, `translate()` sync, `tMany()` / `translateMany()` batch, interpolation, `activeLang`, `setActiveLang()` |
 | `provide-blocks-localization-testing.spec.ts` | 4 | Translation injection, default lang, config overrides, empty translations |
 

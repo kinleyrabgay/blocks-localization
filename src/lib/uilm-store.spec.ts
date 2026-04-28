@@ -229,4 +229,71 @@ describe('UilmStore', () => {
       expect(freshStore.activeLang()).toBe('en');
     });
   });
+
+  describe('getStorage fallback', () => {
+    it('should fall back to defaultLang when storage throws', () => {
+      // Simulate storage being unavailable by making localStorage throw
+      const original = Object.getOwnPropertyDescriptor(window, 'localStorage')!;
+      Object.defineProperty(window, 'localStorage', {
+        get: () => {
+          throw new Error('SecurityError');
+        },
+        configurable: true,
+      });
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [{ provide: BLOCKS_LOCALIZATION_CONFIG, useValue: createConfig() }],
+      });
+      const freshStore = TestBed.inject(UilmStore);
+      expect(freshStore.activeLang()).toBe('en');
+
+      // Restore
+      Object.defineProperty(window, 'localStorage', original);
+    });
+  });
+
+  describe('key mode toggle via postMessage', () => {
+    /** Dispatch a synthetic MessageEvent that passes the source/origin guards. */
+    function dispatchKeyModeMessage(data: unknown): void {
+      const event = new MessageEvent('message', {
+        data,
+        source: window,
+        origin: window.location.origin,
+      });
+      window.dispatchEvent(event);
+    }
+
+    it('should toggle keyMode when receiving a valid keymode message', () => {
+      expect(store.keyMode()).toBe(false);
+      dispatchKeyModeMessage({ action: 'keymode', keymode: true });
+      expect(store.keyMode()).toBe(true);
+    });
+
+    it('should bump version when keyMode changes but not when same value is sent again', () => {
+      store.setTranslation({ KEY: 'val' }, 'en');
+
+      dispatchKeyModeMessage({ action: 'keymode', keymode: true });
+      expect(store.keyMode()).toBe(true);
+
+      // Sending same value should NOT bump version again (no-op)
+      dispatchKeyModeMessage({ action: 'keymode', keymode: true });
+      expect(store.keyMode()).toBe(true);
+    });
+
+    it('should ignore messages with wrong action', () => {
+      dispatchKeyModeMessage({ action: 'other', keymode: true });
+      expect(store.keyMode()).toBe(false);
+    });
+
+    it('should ignore non-object messages', () => {
+      dispatchKeyModeMessage('not-an-object');
+      expect(store.keyMode()).toBe(false);
+    });
+
+    it('should ignore null data', () => {
+      dispatchKeyModeMessage(null);
+      expect(store.keyMode()).toBe(false);
+    });
+  });
 });

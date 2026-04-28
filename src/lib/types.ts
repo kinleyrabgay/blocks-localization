@@ -77,6 +77,15 @@ export interface BlocksLocalizationConfig {
   cacheStorage?: UilmCacheStorage;
 
   /**
+   * When `cacheStorage` is `'indexeddb'` and a cached entry exists, serve
+   * it immediately and revalidate from the API in the background.
+   * Updated translations are merged into the store silently without blocking the UI.
+   * Has no effect when `cacheStorage` is `'memory'`.
+   * @defaultValue `false`
+   */
+  revalidateInBackground?: boolean;
+
+  /**
    * Prefix translation keys with the module name/alias
    * (e.g. `"dashboard.LABEL.HELLO"`).
    * @defaultValue `false`

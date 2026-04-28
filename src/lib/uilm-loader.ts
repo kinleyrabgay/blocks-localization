@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { from, Observable, of, shareReplay } from 'rxjs';
+import { from, Observable, of, shareReplay, Subject } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
 import { BLOCKS_LOCALIZATION_CONFIG } from './tokens';
@@ -47,6 +47,9 @@ export class UilmLoader {
   /** Tracks in-flight HTTP observables for request deduplication. */
   private readonly inflight = new Map<string, Observable<TranslationMap>>();
 
+  /** Emits when a background revalidation produces updated translations. */
+  readonly revalidated$ = new Subject<{ lang: string; data: TranslationMap }>();
+
   private availableModules: UilmModule[] = [];
   private availableLanguages: UilmLanguage[] = [];
   private shortToFullMapping: Record<string, string> = {};
@@ -74,6 +77,10 @@ export class UilmLoader {
 
   private get useIndexedDb(): boolean {
     return this.config.cacheStorage === 'indexeddb';
+  }
+
+  private get shouldRevalidate(): boolean {
+    return this.useIndexedDb && !!this.config.revalidateInBackground;
   }
 
   private get shouldFallbackToLocal(): boolean {
@@ -254,6 +261,11 @@ export class UilmLoader {
           if (idbData) {
             this.memCache.set(cacheKey, { data: idbData, timestamp: Date.now() });
             this.inflight.delete(cacheKey);
+
+            if (this.shouldRevalidate) {
+              this.revalidateFromApi(lang, moduleName, prefix, cacheKey, idbData);
+            }
+
             return of(idbData);
           }
           return this.fetchFromApi(lang, moduleName, prefix, cacheKey);
@@ -363,6 +375,44 @@ export class UilmLoader {
       tap((data) => this.populateCache(this.buildCacheKey(prefix, lang), data)),
       catchError(() => of({} as TranslationMap)),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private — background revalidation
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fire-and-forget API fetch that silently updates caches and emits on
+   * `revalidated$` when the response differs from the currently cached data.
+   */
+  private revalidateFromApi(
+    lang: string,
+    moduleName: string,
+    prefix: string,
+    cacheKey: string,
+    cachedData: TranslationMap,
+  ): void {
+    const fullLangCode = toFullLangCode(lang, this.shortToFullMapping);
+    const url =
+      `${this.config.uilmApiBaseUrl}/Key/GetUilmFile` +
+      `?ProjectKey=${this.config.projectKey}` +
+      `&ModuleName=${encodeURIComponent(moduleName)}` +
+      `&Language=${encodeURIComponent(fullLangCode)}`;
+
+    this.http
+      .get<TranslationMap>(url, { headers: this.buildHeaders() })
+      .pipe(map((data) => (this.shouldPrefixKeys ? this.prefixKeys(data, prefix) : data)))
+      .subscribe({
+        next: (freshData) => {
+          if (JSON.stringify(freshData) !== JSON.stringify(cachedData)) {
+            this.populateCache(cacheKey, freshData);
+            this.revalidated$.next({ lang, data: freshData });
+          }
+        },
+        error: () => {
+          /* silent — cached data is already served */
+        },
+      });
   }
 
   // ---------------------------------------------------------------------------

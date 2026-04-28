@@ -89,6 +89,11 @@ export function provideBlocksLocalization(config: BlocksLocalizationConfig) {
                 });
             };
 
+            // Merge background revalidation updates into the store
+            loader.revalidated$
+              .pipe(takeUntilDestroyed(destroyRef))
+              .subscribe(({ lang, data }) => store.setTranslation(data, lang));
+
             // Load for current language immediately
             loader
               .ensureMetadataLoaded()

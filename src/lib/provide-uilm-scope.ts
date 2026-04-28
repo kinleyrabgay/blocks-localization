@@ -76,6 +76,11 @@ export function provideUilmScope(config: UilmScopeConfig) {
           });
       };
 
+      // Merge background revalidation updates into the store
+      loader.revalidated$
+        .pipe(takeUntilDestroyed(destroyRef))
+        .subscribe(({ lang, data }) => store.setTranslation(data, lang));
+
       // In eager mode, skip the initial fetch — APP_INITIALIZER already loaded everything.
       // The loader cache will short-circuit anyway, but this avoids unnecessary forkJoin overhead.
       if (globalConfig.strategy !== 'eager') {
