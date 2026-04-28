@@ -12,6 +12,14 @@ _Add entries here as you work. Move them to a versioned section on release._
 
 ---
 
+## [0.2.4] - 2026-04-28
+
+### Fixed
+
+- **Missing translation fallback shows blank instead of key** — `*uilmTranslate` directive and `uilmTranslate` pipe now return the raw key when no translation is found, instead of invisible non-breaking spaces. This makes untranslated or already-translated values (e.g. display labels passed through `t()`) visible in the UI rather than appearing empty.
+
+---
+
 ## [0.2.3] - 2026-04-28
 
 ### Fixed

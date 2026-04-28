@@ -187,6 +187,8 @@ With scope (auto-prefixes keys):
 </section>
 ```
 
+> **Fallback:** If a key has no matching translation, the raw key string is returned as-is. This means pre-translated or non-key values passed through `t()` render normally instead of appearing blank.
+
 **Component setup:**
 ```typescript
 import { UilmTranslateDirective } from '@selisedev/blocks-localization';

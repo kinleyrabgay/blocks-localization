@@ -65,7 +65,7 @@ export class UilmTranslateDirective {
 
       const result = scope ? (resolve(`${scope}.${key}`) ?? resolve(key)) : resolve(key);
 
-      return result ?? '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0';
+      return result ?? key;
     };
 
     if (this.viewRef) {

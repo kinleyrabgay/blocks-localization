@@ -50,7 +50,7 @@ export class UilmTranslatePipe implements PipeTransform {
     this.lastParamsJson = paramsJson;
     this.lastValue = this.store.has(key)
       ? this.store.translate(key, params)
-      : '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0';
+      : key;
     return this.lastValue;
   }
 }
