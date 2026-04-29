@@ -12,6 +12,14 @@ _Add entries here as you work. Move them to a versioned section on release._
 
 ---
 
+## [0.2.5] - 2026-04-29
+
+### Fixed
+
+- **Stale translations not updating from IndexedDB cache** — when cached translations were hydrated from IndexedDB into the in-memory L1 cache, subsequent `fetchModuleTranslations` calls found a valid L1 hit and short-circuited, skipping the background API revalidation entirely. Now the L1 hit path also triggers background revalidation when `revalidateInBackground` is enabled, so translation changes in UILM are reflected in the UI without requiring a cache clear.
+
+---
+
 ## [0.2.4] - 2026-04-28
 
 ### Fixed

@@ -116,6 +116,10 @@ export class UilmLoader {
     // 1. L1 hit
     const l1Entry = this.memCache.get(cacheKey);
     if (l1Entry && this.isL1Valid(cacheKey)) {
+      // Still fire background revalidation so stale cached data gets updated
+      if (this.shouldRevalidate) {
+        this.revalidateFromApi(lang, moduleName, prefix, cacheKey, l1Entry.data);
+      }
       return of(l1Entry.data);
     }
 
