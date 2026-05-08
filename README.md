@@ -4,7 +4,83 @@ Standalone Angular SDK for SELISE UILM (Unified Internationalization & Localizat
 
 **Zero external translation dependencies** - no Transloco, ngx-translate, or similar. Built entirely on Angular signals with two loading strategies, two-tier caching (in-memory + IndexedDB), local JSON fallback, module aliasing, and route-level scoping.
 
-> **Angular compatibility:** Requires Angular **>=17.0.0**. The SDK uses standalone components, `signal()`, `computed()`, `effect()`, `DestroyRef`, `takeUntilDestroyed`, and `ENVIRONMENT_INITIALIZER` — all available from Angular 17.0. Works with Angular 17, 18, 19, and above.
+> **Version guide:** Install the version matching your Angular version:
+>
+> | Your Angular version | SDK version | Install |
+> |---------------------|-------------|---------|
+> | Angular 17.x | `17.x.x` | `npm i @selisedev/blocks-localization@17` |
+> | Angular 19.x+ | `19.x.x` | `npm i @selisedev/blocks-localization@19` |
+>
+> This branch/version (`17.x.x`) is built **exclusively for Angular 17**. For Angular 19+ with modern APIs (`input()`, `provideEnvironmentInitializer()`, etc.), use the `19.x.x` release.
+
+---
+
+## Angular 17 Compatibility
+
+This version (`17.x.x`) uses only APIs available since Angular 17.0. It works with Angular 17 and 18.
+
+| API | Angular version | Used in |
+|-----|----------------|---------|
+| `signal()`, `computed()`, `effect()` | 17.0 | Store, directive, service |
+| `DestroyRef` + `takeUntilDestroyed()` | 17.0 | All providers, loader |
+| `ENVIRONMENT_INITIALIZER` token | 17.0 | Provider initialization |
+| `makeEnvironmentProviders()` | 17.0 | All provider factories |
+| `@Input()` decorator | 2.0+ | Directive, loading screen component |
+| Standalone components/directives | 15.0+ | All consumer-facing APIs |
+| `@if` / `@else` control flow | 17.0 | Template examples (or use `*ngIf`) |
+
+### Provider pattern
+
+All providers use the `ENVIRONMENT_INITIALIZER` token (v17-compatible) — **not** `provideEnvironmentInitializer()` (v19+):
+
+```typescript
+// How provideBlocksLocalization() registers initialization internally:
+makeEnvironmentProviders([
+  { provide: BLOCKS_LOCALIZATION_CONFIG, useValue: config },
+  { provide: ENVIRONMENT_INITIALIZER, multi: true, useValue: () => {
+    const loader = inject(UilmLoader);
+    const store = inject(UilmStore);
+    // ... initialization logic
+  }},
+]);
+
+// provideUilmScope() uses the same pattern for route-level providers:
+makeEnvironmentProviders([
+  { provide: ENVIRONMENT_INITIALIZER, multi: true, useValue: () => {
+    const loader = inject(UilmLoader);
+    const store = inject(UilmStore);
+    // ... lazy-load modules for this route
+  }},
+]);
+```
+
+Both `provideBlocksLocalization()` and `provideUilmScope()` work in Angular 17 route `providers` arrays:
+
+```typescript
+// Angular 17 route configuration — works out of the box
+export const DASHBOARD_ROUTE: Route[] = [{
+  path: 'dashboard',
+  providers: [
+    provideUilmScope({
+      modules: ['dashboard', { module: 'opportunity', alias: 'op' }],
+    }),
+  ],
+  children: [
+    { path: '', loadComponent: () => import('./dashboard').then(c => c.Dashboard) },
+  ],
+}];
+```
+
+### APIs intentionally avoided (v17.1+ / v19+)
+
+This version does **not** use any of these newer APIs:
+
+- `input()` / `output()` / `model()` — signal-based component inputs (v17.1+)
+- `provideEnvironmentInitializer()` — convenience wrapper (v19+)
+- `linkedSignal()` / `resource()` — reactive primitives (v19+)
+- `afterNextRender()` / `afterRender()` — render hooks (v17.2+)
+
+> **Upgrading?** If you move to Angular 19+, switch to `@selisedev/blocks-localization@19` which uses modern Angular APIs for cleaner code.
 
 ---
 

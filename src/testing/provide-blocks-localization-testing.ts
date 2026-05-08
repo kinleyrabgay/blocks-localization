@@ -1,4 +1,4 @@
-import { inject, makeEnvironmentProviders, provideEnvironmentInitializer } from '@angular/core';
+import { ENVIRONMENT_INITIALIZER, inject, makeEnvironmentProviders } from '@angular/core';
 
 import { BLOCKS_LOCALIZATION_CONFIG } from '../lib/tokens';
 import { BlocksLocalizationConfig } from '../lib/types';
@@ -38,13 +38,13 @@ export function provideBlocksLocalizationTesting(
   return makeEnvironmentProviders([
     { provide: BLOCKS_LOCALIZATION_CONFIG, useValue: fullConfig },
 
-    provideEnvironmentInitializer(() => {
+    { provide: ENVIRONMENT_INITIALIZER, multi: true, useValue: () => {
       const store = inject(UilmStore);
       for (const [lang, data] of Object.entries(translations)) {
         store.setTranslation(data, lang);
       }
       // Ensure deterministic active language regardless of leftover localStorage
       store.setActiveLang(defaultLang);
-    }),
+    }},
   ]);
 }
