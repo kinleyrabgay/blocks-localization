@@ -1,9 +1,9 @@
 import {
   DestroyRef,
   effect,
+  ENVIRONMENT_INITIALIZER,
   inject,
   makeEnvironmentProviders,
-  provideEnvironmentInitializer,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
@@ -87,7 +87,7 @@ export function provideBlocksLocalization(config: BlocksLocalizationConfig) {
     // -------------------------------------------------------------------------
     ...(modules.length
       ? [
-          provideEnvironmentInitializer(() => {
+          { provide: ENVIRONMENT_INITIALIZER, multi: true, useValue: () => {
             const loader = inject(UilmLoader);
             const store = inject(UilmStore);
             const destroyRef = inject(DestroyRef);
@@ -143,7 +143,7 @@ export function provideBlocksLocalization(config: BlocksLocalizationConfig) {
                   .subscribe(() => loadForLang(newLang));
               }
             });
-          }),
+          }},
         ]
       : []),
   ]);

@@ -3,7 +3,7 @@ import {
   effect,
   EmbeddedViewRef,
   inject,
-  input,
+  Input,
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
@@ -39,7 +39,7 @@ export class UilmTranslateDirective {
   private viewRef: EmbeddedViewRef<UilmTranslateContext> | null = null;
 
   /** Optional scope prefix */
-  readonly uilmTranslateScope = input<string>('');
+  @Input() uilmTranslateScope = '';
 
   constructor() {
     effect(() => {
@@ -57,7 +57,7 @@ export class UilmTranslateDirective {
   }
 
   private ensureView(): void {
-    const scope = this.uilmTranslateScope();
+    const scope = this.uilmTranslateScope;
 
     const translateFn = (key: string, params?: Record<string, unknown>): string => {
       const resolve = (k: string): string | null =>

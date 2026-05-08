@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, TemplateRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, TemplateRef } from '@angular/core';
 
 @Component({
   selector: 'uilm-loading-screen',
@@ -8,8 +8,8 @@ import { ChangeDetectionStrategy, Component, input, TemplateRef } from '@angular
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="uilm-loading-screen">
-      @if (customTemplate()) {
-        <ng-container *ngTemplateOutlet="customTemplate()!" />
+      @if (customTemplate) {
+        <ng-container *ngTemplateOutlet="customTemplate" />
       } @else {
         <div class="uilm-loading-content">
           <div class="uilm-loading-logo">
@@ -39,8 +39,8 @@ import { ChangeDetectionStrategy, Component, input, TemplateRef } from '@angular
               />
             </svg>
           </div>
-          <h2 class="uilm-loading-title">{{ title() }}</h2>
-          <p class="uilm-loading-description">{{ description() }}</p>
+          <h2 class="uilm-loading-title">{{ title }}</h2>
+          <p class="uilm-loading-description">{{ description }}</p>
           <div class="uilm-loading-bar">
             <div class="uilm-loading-bar-fill"></div>
           </div>
@@ -152,8 +152,8 @@ import { ChangeDetectionStrategy, Component, input, TemplateRef } from '@angular
   ],
 })
 export class UilmLoadingScreenComponent {
-  readonly title = input('Loading');
-  readonly description = input('Loading translations...');
+  @Input() title = 'Loading';
+  @Input() description = 'Loading translations...';
 
   /**
    * Optional custom template to replace the entire default loading UI.
@@ -170,5 +170,5 @@ export class UilmLoadingScreenComponent {
    * <uilm-loading-screen [customTemplate]="customLoading" />
    * ```
    */
-  readonly customTemplate = input<TemplateRef<unknown>>();
+  @Input() customTemplate?: TemplateRef<unknown>;
 }

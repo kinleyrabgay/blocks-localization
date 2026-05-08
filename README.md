@@ -4,6 +4,8 @@ Standalone Angular SDK for SELISE UILM (Unified Internationalization & Localizat
 
 **Zero external translation dependencies** - no Transloco, ngx-translate, or similar. Built entirely on Angular signals with two loading strategies, two-tier caching (in-memory + IndexedDB), local JSON fallback, module aliasing, and route-level scoping.
 
+> **Angular compatibility:** Requires Angular **>=17.0.0**. The SDK uses standalone components, `signal()`, `computed()`, `effect()`, `DestroyRef`, `takeUntilDestroyed`, and `ENVIRONMENT_INITIALIZER` — all available from Angular 17.0. Works with Angular 17, 18, 19, and above.
+
 ---
 
 ## Setup
@@ -132,6 +134,27 @@ export class AppComponent {
 }
 ```
 
+**Angular 17 alternative** (using `*ngIf` instead of `@if`):
+
+```typescript
+import { NgIf } from '@angular/common';
+import { UilmLoadingScreenComponent, UilmStore } from '@selisedev/blocks-localization';
+
+@Component({
+  imports: [NgIf, UilmLoadingScreenComponent, RouterOutlet],
+  template: `
+    <uilm-loading-screen
+      *ngIf="!store.ready()"
+      title="Loading"
+      description="Loading translations..." />
+    <router-outlet *ngIf="store.ready()" />
+  `,
+})
+export class AppComponent {
+  protected readonly store = inject(UilmStore);
+}
+```
+
 #### Custom loading UI
 
 Pass a `customTemplate` to fully replace the default loading screen with your own design:
@@ -159,6 +182,8 @@ export class AppComponent {
   protected readonly store = inject(UilmStore);
 }
 ```
+
+> **Tip:** For Angular 17, replace `@if`/`@else` with `*ngIf` as shown in the basic example above.
 
 When `customTemplate` is provided, the default logo, title, description, and progress bar are completely replaced by your template content. The outer `.uilm-loading-screen` wrapper (fixed, centered, full-screen) is preserved.
 
@@ -454,7 +479,7 @@ provideBlocksLocalization({
 ```
 provideBlocksLocalization(config)       App-level: config + strategy + preload
     |
-    |-- [eager] provideAppInitializer   Blocks bootstrap until all modules loaded
+    |-- [eager] ENVIRONMENT_INITIALIZER  Blocks bootstrap until all modules loaded
     |-- [modular] preloadModules only   Loads shared modules, routes load the rest
     |
     +-- UilmStore                       Signal-based reactive translation store
